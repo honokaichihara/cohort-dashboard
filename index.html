@@ -505,20 +505,20 @@ function buildContactRows(page,start,prefix){
       const cls=d.iw?'won':d.il?'lost':'';
       const sb2=d.iw?'<span class="badge badge-won">受注 S</span>':d.il?'<span class="badge badge-lost">'+(d.st)+'</span>':'<span class="badge badge-prog">'+(d.st)+'</span>';
       const hsD=d.rid?'<a href="'+(COHORT_HS_D)+(d.rid)+'" target="_blank" class="hs-link">🔗 取引</a>':'';
-      return'<div class="deal-card '+(cls)+'"><div class="deal-top">'+(sb2)+'<div>'+(hsD)+'</div></div>
-        <div class="deal-fields">'+(d.am>0?('金額：<span>¥'+(d.am.toLocaleString())+'</span><br>'):'')+(d.cr?('担当者：<span>'+(d.cr)+'</span><br>'):'')+(d.cd?('商談作成：<span>'+(d.cd)+'</span><br>'):'')+(d.pc?('商談前キャンペーン：<span style="font-size:10px">'+(d.pc)+'</span>'):'')+'</div></div>';
+      return'<div class="deal-card '+(cls)+'"><div class="deal-top">'+(sb2)+'<div>'+(hsD)+'</div></div>'+
+        '<div class="deal-fields">'+(d.am>0?('金額：<span>¥'+(d.am.toLocaleString())+'</span><br>'):'')+(d.cr?('担当者：<span>'+(d.cr)+'</span><br>'):'')+(d.cd?('商談作成：<span>'+(d.cd)+'</span><br>'):'')+(d.pc?('商談前キャンペーン：<span style="font-size:10px">'+(d.pc)+'</span>'):'')+'</div></div>';
     }).join('');
-    return'<div class="contact-row" id="'+(prefix)+'-'+(gi)+'">
-      <div class="cr-main" onclick="toggleCR(\''+(prefix)+'-'+(gi)+'\')">
-        <div class="cr-company">'+(c.co||'（会社名なし）')+'</div>
-        <div class="cr-meta">'+(sb)+(wa>0?('<span style="font-family:\'DM Mono\',monospace;color:var(--gn);font-size:11px">¥'+(wa.toLocaleString())+'</span>'):'')+'<span style="font-size:10px;color:var(--t3)">'+(c.lym)+'</span>'+(hsC)+'</div>
-        <span class="cr-toggle">▶</span>
-      </div>
-      <div class="cr-detail"><div class="cr-detail-inner">
-        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Segment：<span style="color:var(--t2)">'+((c.seg||[]).join(', '))+'</span></div>
-        '+(c.dl.length>0?('<div style="font-size:10px;color:var(--t3);margin-bottom:6px">商談 '+(c.dl.length)+'件</div><div class="deal-grid">'+(dealsHtml)+'</div>'):'<div style="font-size:11px;color:var(--t3)">商談なし</div>')+'
-      </div></div>
-    </div>';
+    return'<div class="contact-row" id="'+(prefix)+'-'+(gi)+'">'+
+      '<div class="cr-main" onclick="toggleCR(\''+(prefix)+'-'+(gi)+'\')">'+
+        '<div class="cr-company">'+(c.co||'（会社名なし）')+'</div>'+
+        '<div class="cr-meta">'+(sb)+(wa>0?('<span style="font-family:\'DM Mono\',monospace;color:var(--gn);font-size:11px">¥'+(wa.toLocaleString())+'</span>'):'')+'<span style="font-size:10px;color:var(--t3)">'+(c.lym)+'</span>'+(hsC)+'</div>'+
+        '<span class="cr-toggle">▶</span>'+
+      '</div>'+
+      '<div class="cr-detail"><div class="cr-detail-inner">'+
+        '<div style="font-size:11px;color:var(--t3);margin-bottom:8px">Segment：<span style="color:var(--t2)">'+((c.seg||[]).join(', '))+'</span></div>'+
+        (c.dl.length>0?('<div style="font-size:10px;color:var(--t3);margin-bottom:6px">商談 '+(c.dl.length)+'件</div><div class="deal-grid">'+(dealsHtml)+'</div>'):'<div style="font-size:11px;color:var(--t3)">商談なし</div>')+
+      '</div></div>'+
+    '</div>';
   }).join('');
 }
 function toggleCR(id){document.getElementById(id)?.classList.toggle('expanded');}
