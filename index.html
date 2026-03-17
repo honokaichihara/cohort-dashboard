@@ -430,7 +430,7 @@ function sortOwner(key){sortOwnerCfg=sortOwnerCfg.key===key?{key,dir:sortOwnerCf
 
 function renderLost(){
   const r=currentResult;
-  const reasons=Object.keys(LC);
+  const reasons=Object.keys(COHORT_LC);
   const totals={};
   Object.values(r.lost).forEach(m=>Object.entries(m).forEach(([k,v])=>{totals[k]=(totals[k]||0)+v;}));
   mkChart('chart-lost-pie',{type:'doughnut',data:{labels:reasons.map(r=>r.replace('失注（','').replace('）','')),
