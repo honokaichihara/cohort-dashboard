@@ -3,22 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>キャンペーン分析ダッシュボード</title>
+<title>キャンペーンコホート分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{--bg:#f6faf6;--bg2:#ffffff;--bg3:#edf5ed;--bd:rgba(0,0,0,.08);--bd2:rgba(0,0,0,.15);--t:#1a2e1a;--t2:#3d6b3a;--t3:#7aa876;--ac:#3cb85a;--ac2:#2a9448;--gn:#3cb85a;--yw:#d4920a;--rd:#c0392b;--tl:#1a9e7a;--pk:#8b4a7a}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:13px;line-height:1.6;min-height:100vh}
-.hdr{padding:16px 24px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hdr{padding:16px 24px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .hdr h1{font-size:16px;font-weight:700}.hdr p{font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-top:1px}
-.hctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-select{background:var(--bg3);border:1px solid var(--bd2);color:var(--t);border-radius:6px;padding:5px 10px;font-size:12px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;outline:none}
-select:hover{border-color:var(--ac)}
+.filter-panel{background:var(--bg2);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;font-family:'DM Mono',monospace}
+select,input[type=text]{background:var(--bg3);border:1px solid var(--bd2);color:var(--t);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;outline:none;min-width:160px}
+select:hover,input:hover,select:focus,input:focus{border-color:var(--ac)}
+.run-btn{background:var(--ac);border:none;color:#fff;border-radius:6px;padding:7px 18px;font-size:12px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;transition:opacity .15s}
+.run-btn:hover{opacity:.85}
+.clear-btn{background:var(--bg3);border:1px solid var(--bd2);color:var(--t2);border-radius:6px;padding:7px 14px;font-size:12px;font-family:'Noto Sans JP',sans-serif;cursor:pointer}
+.clear-btn:hover{border-color:var(--rd);color:var(--rd)}
 .mtog{display:flex;border:1px solid var(--bd2);border-radius:6px;overflow:hidden}
-.mbtn{background:transparent;border:none;color:var(--t2);padding:5px 12px;font-size:11px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.mbtn{background:transparent;border:none;color:var(--t2);padding:6px 14px;font-size:11px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
 .mbtn.on{background:var(--ac);color:#fff}.mbtn:not(:last-child){border-right:1px solid var(--bd2)}
 .main{padding:16px 24px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--t3)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:13px}
 .krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-bottom:16px}
 .kc{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
 .kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
@@ -27,211 +36,181 @@ select:hover{border-color:var(--ac)}
 .kv{font-size:22px;font-weight:700;line-height:1;font-family:'DM Mono',monospace}
 .kc.bl .kv{color:var(--ac)}.kc.gn .kv{color:var(--gn)}.kc.yw .kv{color:var(--yw)}.kc.tl .kv{color:var(--tl)}.kc.pk .kv{color:var(--pk)}.kc.pp .kv{color:var(--ac2)}
 .ks{font-size:9px;color:var(--t3);margin-top:2px}
-.notice{background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--t2);margin-bottom:14px;line-height:1.5}
-.notice strong{color:var(--ac)}
-.cat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-bottom:14px}
-.cat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
-.cat-card:hover,.cat-card.sel{border-color:var(--ac)}.cat-card.sel{background:rgba(79,142,247,.06)}
-.cc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-.cc-name{font-size:12px;font-weight:500}.cc-badge{font-size:10px;font-family:'DM Mono',monospace;background:rgba(79,142,247,.15);color:var(--ac);padding:2px 6px;border-radius:4px}
-.cc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
-.cc-stat{text-align:center}.cc-stat-v{font-size:13px;font-weight:700;font-family:'DM Mono',monospace}.cc-stat-l{font-size:9px;color:var(--t3);margin-top:1px}
-.stit{font-size:11px;color:var(--t2);font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.stit::before{content:'';display:inline-block;width:3px;height:12px;background:var(--ac);border-radius:2px}
+.section{margin-bottom:20px}
+.stit{font-size:12px;color:var(--t2);font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stit::before{content:'';display:inline-block;width:3px;height:13px;background:var(--ac);border-radius:2px}
+.cohort-scroll{overflow-x:auto;border-radius:10px;border:1px solid var(--bd)}
+.cohort-tbl{border-collapse:collapse;min-width:100%;background:var(--bg2)}
+.cohort-tbl th{background:var(--bg3);padding:8px 12px;font-size:10px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace;white-space:nowrap;text-align:center;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd)}
+.cohort-tbl th.row-hdr{text-align:left;min-width:110px}
+.cohort-tbl td{padding:8px 12px;font-size:12px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;font-family:'DM Mono',monospace;white-space:nowrap}
+.cohort-tbl td.row-lbl{text-align:left;font-family:'Noto Sans JP',sans-serif;color:var(--t2);font-size:11px;background:var(--bg3)}
+.cohort-tbl td.lead-cell{background:rgba(79,142,247,.12);color:var(--ac);font-weight:500}
+.cohort-tbl td.appo-cell{color:var(--tl)}.cohort-tbl td.won-cell{color:var(--gn)}.cohort-tbl td.amt-cell{color:var(--yw)}.cohort-tbl td.rate-cell{color:var(--pk)}
+.cohort-tbl td.zero{color:var(--t3)}.cohort-tbl tr:last-child td{border-bottom:none}
+.heat-high{background:rgba(52,211,153,.18)!important}.heat-mid{background:rgba(52,211,153,.08)!important}
+.clickable-cell{cursor:pointer}.clickable-cell:hover{opacity:.75}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:820px){.cgrid{grid-column:1fr}}
+.cc{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.cc h3{font-size:11px;color:var(--t2);margin-bottom:12px;font-weight:500}
+.cw{position:relative;height:220px}.cw.tall{height:280px}.cc.wide{grid-column:1/-1}
 .tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:14px;gap:0;overflow-x:auto}
 .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);padding:7px 14px 9px;font-size:12px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
 .tab:hover{color:var(--t2)}.tab.on{color:var(--ac);border-bottom-color:var(--ac)}
 .pnl{display:none}.pnl.on{display:block}
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-@media(max-width:820px){.cgrid{grid-template-columns:1fr}}
-.cc{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:16px}
-.cc h3{font-size:11px;color:var(--t2);margin-bottom:12px;font-weight:500;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
-.cw{position:relative;height:220px}.cw.tall{height:280px}.cc.wide{grid-column:1/-1}
-.frow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-.flbl{width:44px;font-size:10px;color:var(--t3);text-align:right;flex-shrink:0}
-.fbw{flex:1;height:22px;background:var(--bg3);border-radius:3px;overflow:hidden}
-.fb{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:7px;font-size:10px;font-weight:500;font-family:'DM Mono',monospace;min-width:28px;transition:width .5s cubic-bezier(.16,1,.3,1)}
-.frt{width:36px;font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;text-align:right}
-.twrap{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;overflow:auto;max-height:70vh}
-table{width:100%;border-collapse:collapse;min-width:600px}
-thead tr{background:var(--bg3);position:sticky;top:0;z-index:2}
-th{padding:8px 11px;text-align:left;font-size:10px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace;cursor:pointer;user-select:none;white-space:nowrap}
-th:hover{color:var(--t2)}.th-s{color:var(--ac)!important}
-td{padding:7px 11px;font-size:12px;border-top:1px solid var(--bd);white-space:nowrap}
-tr:hover td{background:rgba(255,255,255,.025)}
+.variant-area{background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--t2)}
+.variant-area strong{color:var(--t);font-size:12px}
+.chip{display:inline-block;background:rgba(79,142,247,.12);color:var(--ac);border:1px solid rgba(79,142,247,.25);border-radius:4px;padding:2px 8px;font-size:10px;margin:2px;font-family:'DM Mono',monospace}
+.twrap{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;overflow:auto;max-height:60vh}
+table.dtbl{width:100%;border-collapse:collapse;min-width:600px}
+table.dtbl thead tr{background:var(--bg3);position:sticky;top:0;z-index:2}
+table.dtbl th{padding:8px 11px;text-align:left;font-size:10px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace;cursor:pointer;user-select:none;white-space:nowrap}
+table.dtbl th:hover{color:var(--t2)}
+table.dtbl td{padding:7px 11px;font-size:12px;border-top:1px solid var(--bd);white-space:nowrap}
+table.dtbl tr:hover td{background:rgba(255,255,255,.02)}
 .tn{font-family:'DM Mono',monospace;text-align:right}
 .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-family:'DM Mono',monospace;font-weight:500}
 .bg{background:rgba(52,211,153,.15);color:var(--gn)}.by{background:rgba(251,191,36,.15);color:var(--yw)}.br{background:rgba(248,113,113,.15);color:var(--rd)}.bb{background:rgba(79,142,247,.15);color:var(--ac)}
 .badge-won{background:rgba(52,211,153,.2);color:var(--gn)}.badge-lost{background:rgba(248,113,113,.2);color:var(--rd)}.badge-prog{background:rgba(34,211,238,.15);color:var(--tl)}.badge-none{background:var(--bg3);color:var(--t3)}
-.hmscroll{overflow-x:auto}
-.hmt{border-collapse:collapse;white-space:nowrap}
-.hmt th{background:var(--bg3);color:var(--t3);padding:5px 9px;font-size:10px;text-align:center;border:1px solid var(--bd);font-family:'DM Mono',monospace;cursor:default;text-transform:none;letter-spacing:0}
-.hmt .rlbl{text-align:left;padding:5px 9px;max-width:170px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--t2)}
-.hmc{width:50px;height:28px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;border:1px solid rgba(255,255,255,.04)}
-.lost-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.lost-lbl{width:90px;font-size:11px;color:var(--t2);flex-shrink:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.lost-bw{flex:1;height:20px;background:var(--bg3);border-radius:3px;overflow:hidden}
-.lost-b{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:6px;font-size:10px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px}
-.lost-n{width:32px;font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;text-align:right}
- 
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto}
 .modal-bg.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:14px;width:100%;max-width:1100px;display:flex;flex-direction:column;max-height:88vh;overflow:hidden}
-.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.modal-hdr{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
 .modal-hdr h2{font-size:14px;font-weight:700}
-.modal-hdr-kpi{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
 .modal-close{background:var(--bg3);border:1px solid var(--bd2);color:var(--t2);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;flex-shrink:0}
 .modal-close:hover{border-color:var(--rd);color:var(--rd)}
-.modal-body{padding:14px 20px;overflow-y:auto;flex:1}
-.modal-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:8px}
-.modal-search{background:var(--bg2);border:1px solid var(--bd2);color:var(--t);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'Noto Sans JP',sans-serif;outline:none;width:200px}
-.modal-search:focus{border-color:var(--ac)}
-.filter-label{font-size:11px;color:var(--t3)}
- 
+.modal-body{padding:14px 18px;overflow-y:auto;flex:1}
+.mfilters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:8px}
+.msearch{background:var(--bg2);border:1px solid var(--bd2);color:var(--t);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'Noto Sans JP',sans-serif;outline:none;width:200px}
+.msearch:focus{border-color:var(--ac)}
 .contact-row{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;overflow:hidden}
 .cr-main{padding:9px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer}
 .cr-main:hover{background:rgba(255,255,255,.02)}
 .cr-company{font-size:13px;font-weight:500;flex:1;min-width:100px}
 .cr-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.cr-toggle{font-size:12px;color:var(--t3);margin-left:4px;transition:transform .2s}
+.cr-toggle{font-size:11px;color:var(--t3);transition:transform .2s}
 .contact-row.expanded .cr-toggle{transform:rotate(90deg)}
 .cr-detail{max-height:0;overflow:hidden;transition:max-height .3s ease}
 .contact-row.expanded .cr-detail{max-height:800px}
 .cr-detail-inner{padding:0 14px 14px}
- 
-.deal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-top:8px}
+.deal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-top:8px}
 .deal-card{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:10px 12px}
 .deal-card.won{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.04)}
 .deal-card.lost{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04)}
 .deal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.deal-fields{font-size:11px;color:var(--t2);line-height:1.9}
-.deal-fields span{color:var(--t)}
-.hs-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--ac);text-decoration:none;border:1px solid rgba(79,142,247,.3);border-radius:4px;padding:2px 7px;transition:background .15s;font-family:'DM Mono',monospace}
+.deal-fields{font-size:11px;color:var(--t2);line-height:1.9}.deal-fields span{color:var(--t)}
+.hs-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--ac);text-decoration:none;border:1px solid rgba(79,142,247,.3);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace}
 .hs-link:hover{background:rgba(79,142,247,.12)}
- 
 .pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px;font-size:11px;color:var(--t3)}
 .page-btns{display:flex;gap:4px;flex-wrap:wrap}
 .page-btn{background:var(--bg3);border:1px solid var(--bd2);color:var(--t2);border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer}
-.page-btn:hover{border-color:var(--ac);color:var(--ac)}.page-btn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.page-btn:hover,.page-btn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
 <body>
 <div class="hdr">
   <div>
-    <h1>📊 キャンペーン分析ダッシュボード</h1>
-    <p>HubSpot コホートデータ ／ 2025年4月〜 ／ 受注=Deal Stage "S" ／ 新規リード起点は左端キャンペーン帰属</p>
+    <h1>📊 キャンペーンコホート分析</h1>
+    <p>展示会・セミナーのリード群がその後どう転換したかを月別に追跡</p>
   </div>
-  <div class="hctrls">
-    <div class="mtog">
-      <button class="mbtn on" id="btn-lead" onclick="setMeasure('lead')">新規リード起点</button>
-      <button class="mbtn" id="btn-appo" onclick="setMeasure('appo')">アポ前接触起点</button>
-    </div>
-    <select id="month-from" onchange="render()"><option value="">月From</option></select>
-    <select id="month-to"   onchange="render()"><option value="">月To</option></select>
+  <div class="mtog">
+    <button class="mbtn on" id="btn-v1" onclick="setView(1)">① リード起点</button>
+    <button class="mbtn"    id="btn-v2" onclick="setView(2)">② アポ前接触起点</button>
   </div>
 </div>
-
+<div class="filter-panel">
+  <div class="fg">
+    <label>大枠キャンペーン</label>
+    <select id="f-seg-base"><option value="">-- 選択してください --</option></select>
+  </div>
+  <div class="fg" id="fg-source">
+    <label>リードソース（B列）</label>
+    <select id="f-source"><option value="">すべて</option></select>
+  </div>
+  <div class="fg" id="fg-lead-month">
+    <label>リード作成月（C列）</label>
+    <select id="f-lead-month"><option value="">すべて</option></select>
+  </div>
+  <button class="run-btn" onclick="runAnalysis()">▶ 分析実行</button>
+  <button class="clear-btn" onclick="clearAll()">リセット</button>
+</div>
 <div class="main">
-  <div class="notice" id="notice"></div>
-  <div class="krow" id="krow"></div>
-  <div class="stit">大枠カテゴリ <span style="font-size:9px;color:var(--t3);font-weight:400;margin-left:4px">クリックで絞り込み</span></div>
-  <div class="cat-row" id="cat-row"></div>
-  <div class="tabs">
-    <button class="tab on" onclick="showTab('funnel',this)">ファネル分析</button>
-    <button class="tab"    onclick="showTab('monthly',this)">月別トレンド</button>
-    <button class="tab"    onclick="showTab('heatmap',this)">ヒートマップ</button>
-    <button class="tab"    onclick="showTab('owner',this)">担当者別</button>
-    <button class="tab"    onclick="showTab('lost',this)">失注分析</button>
-    <button class="tab"    onclick="showTab('table',this)">詳細テーブル</button>
+  <div class="empty-state" id="empty-state">
+    <div class="icon">🎯</div>
+    <p>上のフィルターでキャンペーンを選択して「分析実行」を押してください</p>
   </div>
-  <div class="pnl on" id="pnl-funnel">
-    <div class="cgrid">
-      <div class="cc"><h3>キャンペーン別 ファネル（上位10）</h3><div id="funnel-wrap"></div></div>
-      <div class="cc"><h3>転換率・受注率 比較</h3><div class="cw"><canvas id="chart-rate"></canvas></div></div>
-      <div class="cc wide"><h3>キャンペーン別 受注金額</h3><div class="cw tall"><canvas id="chart-amt"></canvas></div></div>
+  <div id="result" style="display:none">
+    <div class="variant-area" id="variant-area"></div>
+    <div class="krow" id="krow"></div>
+    <div class="tabs">
+      <button class="tab on" onclick="showTab('cohort',this)">コホートテーブル</button>
+      <button class="tab"    onclick="showTab('trend',this)">月別トレンド</button>
+      <button class="tab"    onclick="showTab('owner',this)">担当者別</button>
+      <button class="tab"    onclick="showTab('lost',this)">失注分析</button>
+      <button class="tab"    onclick="showTab('contacts',this)">コンタクト一覧</button>
     </div>
-  </div>
-  <div class="pnl" id="pnl-monthly">
-    <div class="cgrid">
-      <div class="cc wide"><h3>月別 リード数・アポ数・受注数</h3><div class="cw tall"><canvas id="chart-monthly"></canvas></div></div>
-      <div class="cc wide"><h3>月別 受注金額</h3><div class="cw"><canvas id="chart-monthly-amt"></canvas></div></div>
-    </div>
-  </div>
-  <div class="pnl" id="pnl-heatmap">
-    <div class="cc" style="margin-bottom:14px">
-      <h3>月 × キャンペーン ヒートマップ
-        <select id="hm-metric" onchange="renderHeatmap()" style="font-size:11px;padding:3px 8px">
-          <option value="leads">リード数</option><option value="appo">アポ数</option>
-          <option value="won">受注数</option><option value="amount">受注金額</option>
-        </select>
-      </h3>
-      <div class="hmscroll" id="hm-cont"></div>
-    </div>
-  </div>
-  <div class="pnl" id="pnl-owner">
-    <div class="cgrid">
-      <div class="cc"><h3>担当者別 アポ数・受注数</h3><div class="cw tall"><canvas id="chart-owner"></canvas></div></div>
-      <div class="cc"><h3>担当者別 受注金額</h3><div class="cw tall"><canvas id="chart-owner-amt"></canvas></div></div>
-      <div class="cc wide"><h3>担当者別 詳細</h3>
-        <div class="twrap"><table><thead><tr>
-          <th onclick="sortOwner('name')">担当者</th>
-          <th onclick="sortOwner('appo')" class="tn">アポ数</th>
-          <th onclick="sortOwner('won')" class="tn">受注数</th>
-          <th onclick="sortOwner('wonRate')" class="tn">受注率</th>
-          <th onclick="sortOwner('amount')" class="tn">受注金額</th>
-          <th onclick="sortOwner('cpa')" class="tn">平均単価</th>
-        </tr></thead><tbody id="owner-tbl-body"></tbody></table></div>
+    <div class="pnl on" id="pnl-cohort">
+      <div class="section">
+        <div class="stit" id="cohort-title">月別コホート推移</div>
+        <div class="cohort-scroll" id="cohort-wrap"></div>
       </div>
     </div>
-  </div>
-  <div class="pnl" id="pnl-lost">
-    <div class="cgrid">
-      <div class="cc"><h3>失注理由 内訳</h3><div class="cw"><canvas id="chart-lost-pie"></canvas></div></div>
-      <div class="cc"><h3>月別 失注理由 推移</h3><div class="cw"><canvas id="chart-lost-trend"></canvas></div></div>
-      <div class="cc wide"><h3>失注理由 詳細</h3><div id="lost-bars" style="padding:4px 0"></div></div>
-    </div>
-  </div>
-  <div class="pnl" id="pnl-table">
-    <div class="twrap">
-      <table><thead><tr>
-        <th onclick="sortTbl('name')">キャンペーン</th>
-        <th onclick="sortTbl('cat')">カテゴリ</th>
-        <th onclick="sortTbl('leads')" class="tn">リード数</th>
-        <th onclick="sortTbl('appo')" class="tn">アポ数</th>
-        <th onclick="sortTbl('appoRate')" class="tn">転換率</th>
-        <th onclick="sortTbl('won')" class="tn">受注数</th>
-        <th onclick="sortTbl('wonRate')" class="tn">受注率</th>
-        <th onclick="sortTbl('amount')" class="tn">受注金額</th>
-        <th onclick="sortTbl('cpa')" class="tn">平均単価</th>
-        <th style="text-align:center">詳細</th>
-      </tr></thead><tbody id="tbl-body"></tbody></table>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div style="flex:1;min-width:0">
-        <h2 id="modal-title"></h2>
-        <div style="font-size:10px;color:var(--t3);margin-top:2px" id="modal-sub"></div>
-        <div class="modal-hdr-kpi" id="modal-kpi"></div>
+    <div class="pnl" id="pnl-trend">
+      <div class="cgrid">
+        <div class="cc wide"><h3>月別 アポ数・受注数の推移</h3><div class="cw tall"><canvas id="chart-trend"></canvas></div></div>
+        <div class="cc wide"><h3>月別 受注金額</h3><div class="cw"><canvas id="chart-trend-amt"></canvas></div></div>
       </div>
-      <button class="modal-close" onclick="closeModal()">✕ 閉じる</button>
     </div>
-    <div class="modal-body" id="modal-body">
-      <div class="modal-filters">
-        <span class="filter-label">絞り込み：</span>
-        <input class="modal-search" id="modal-search" type="text" placeholder="会社名・担当者で検索..." oninput="filterContacts()">
-        <select id="modal-filter-status" onchange="filterContacts()" style="font-size:11px;padding:4px 8px">
+    <div class="pnl" id="pnl-owner">
+      <div class="cgrid">
+        <div class="cc"><h3>担当者別 アポ数・受注数</h3><div class="cw tall"><canvas id="chart-owner"></canvas></div></div>
+        <div class="cc"><h3>担当者別 受注金額</h3><div class="cw tall"><canvas id="chart-owner-amt"></canvas></div></div>
+        <div class="cc wide"><h3>担当者別 詳細</h3>
+          <div class="twrap"><table class="dtbl"><thead><tr>
+            <th onclick="sortOwner('name')">担当者</th>
+            <th onclick="sortOwner('appo')" class="tn">アポ数</th>
+            <th onclick="sortOwner('won')" class="tn">受注数</th>
+            <th onclick="sortOwner('wonRate')" class="tn">受注率</th>
+            <th onclick="sortOwner('amount')" class="tn">受注金額</th>
+            <th onclick="sortOwner('cpa')" class="tn">平均単価</th>
+          </tr></thead><tbody id="owner-tbl"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+    <div class="pnl" id="pnl-lost">
+      <div class="cgrid">
+        <div class="cc"><h3>失注理由 内訳</h3><div class="cw"><canvas id="chart-lost-pie"></canvas></div></div>
+        <div class="cc"><h3>月別 失注理由 推移</h3><div class="cw"><canvas id="chart-lost-trend"></canvas></div></div>
+      </div>
+    </div>
+    <div class="pnl" id="pnl-contacts">
+      <div class="mfilters" style="border-radius:8px;margin-bottom:12px">
+        <input class="msearch" id="contact-search" type="text" placeholder="会社名・担当者で検索..." oninput="filterContactsList()">
+        <select id="contact-status-filter" onchange="filterContactsList()" style="font-size:11px;padding:4px 8px;min-width:130px">
           <option value="all">全ステータス</option>
           <option value="won">受注のみ</option>
           <option value="appo">アポあり</option>
           <option value="lost">失注あり</option>
           <option value="none">アポなし</option>
         </select>
+        <span id="contact-count" style="font-size:11px;color:var(--t3);margin-left:auto"></span>
+      </div>
+      <div id="contact-list"></div>
+      <div class="pagination" id="contact-pagination"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><h2 id="modal-title"></h2><div style="font-size:10px;color:var(--t3);margin-top:2px" id="modal-sub"></div></div>
+      <button class="modal-close" onclick="closeModal()">✕ 閉じる</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="mfilters">
+        <input class="msearch" id="modal-search" type="text" placeholder="会社名で検索..." oninput="filterModal()">
         <span id="modal-count" style="font-size:11px;color:var(--t3);margin-left:auto"></span>
       </div>
       <div id="modal-contacts"></div>
@@ -239,65 +218,333 @@ tr:hover td{background:rgba(255,255,255,.025)}
     </div>
   </div>
 </div>
-
 <script>
-(function(){
-const DB={"months":["2025-05","2025-07","2025-08","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"],"lead_by_camp":{"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者":{"2025-08":{"leads":1,"appo":0,"won":0,"amount":0,"lost":{}},"2026-03":{"leads":14,"appo":2,"won":1,"amount":1460000,"lost":{"失注（未商談）":1}},"2025-12":{"leads":2,"appo":2,"won":0,"amount":0,"lost":{"失注（未商談）":2}},"2025-07":{"leads":5,"appo":0,"won":0,"amount":0,"lost":{}},"2026-02":{"leads":2,"appo":0,"won":0,"amount":0,"lost":{}},"2025-10":{"leads":2,"appo":0,"won":0,"amount":0,"lost":{}},"2025-11":{"leads":1,"appo":0,"won":0,"amount":0,"lost":{}},"2026-01":{"leads":3,"appo":0,"won":0,"amount":0,"lost":{}},"2025-05":{"leads":1,"appo":1,"won":1,"amount":820000,"lost":{}}},"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト":{"2026-04":{"leads":11,"appo":2,"won":0,"amount":0,"lost":{}}},"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者":{"2026-04":{"leads":42,"appo":5,"won":0,"amount":0,"lost":{"失注（未商談）":2}}}},"cat_lead":{"その他":{"2025-08":{"leads":1,"appo":0,"won":0,"amount":0,"lost":{}},"2026-04":{"leads":53,"appo":7,"won":0,"amount":0,"lost":{"失注（未商談）":2}},"2026-03":{"leads":14,"appo":2,"won":1,"amount":1460000,"lost":{"失注（未商談）":1}},"2025-12":{"leads":2,"appo":2,"won":0,"amount":0,"lost":{"失注（未商談）":2}},"2025-07":{"leads":5,"appo":0,"won":0,"amount":0,"lost":{}},"2026-02":{"leads":2,"appo":0,"won":0,"amount":0,"lost":{}},"2025-10":{"leads":2,"appo":0,"won":0,"amount":0,"lost":{}},"2025-11":{"leads":1,"appo":0,"won":0,"amount":0,"lost":{}},"2026-01":{"leads":3,"appo":0,"won":0,"amount":0,"lost":{}},"2025-05":{"leads":1,"appo":1,"won":1,"amount":820000,"lost":{}}}},"lead_by_appocamp":{"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト":{"2026-04":{"leads":0,"appo":2,"won":0,"amount":0,"lost":{}}},"セミナー_MIL2026_3_ 新規企業新規コンタクト":{"2026-03":{"leads":0,"appo":2,"won":1,"amount":1460000,"lost":{"失注（未商談）":1}}},"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者":{"2026-04":{"leads":0,"appo":5,"won":0,"amount":0,"lost":{"失注（未商談）":2}}},"展示会_HREXPO2025/6":{"2026-01":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{}}},"オーガニック_概要資料":{"2025-05":{"leads":0,"appo":1,"won":1,"amount":820000,"lost":{}}}},"cat_appo":{"その他":{"2026-04":{"leads":0,"appo":7,"won":0,"amount":0,"lost":{"失注（未商談）":2}},"2026-03":{"leads":0,"appo":2,"won":1,"amount":1460000,"lost":{"失注（未商談）":1}},"2026-01":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{}}},"オーガニック":{"2025-05":{"leads":0,"appo":1,"won":1,"amount":820000,"lost":{}}}},"owner_stats":{"福永 将也":{"2026-04":{"leads":0,"appo":2,"won":0,"amount":0,"lost":{}}},"JobSpringAgent 事務局":{"2026-03":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{"失注（未商談）":1}}},"田中 俊也":{"2025-12":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{"失注（未商談）":1}}},"大山 耕太郎":{"2026-04":{"leads":0,"appo":3,"won":0,"amount":0,"lost":{"失注（未商談）":1}}},"駒田 智士":{"2025-12":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{"失注（未商談）":1}},"2026-04":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{"失注（未商談）":1}}},"柴原 かやね":{"2026-03":{"leads":0,"appo":1,"won":1,"amount":1460000,"lost":{}}},"平井 良輝":{"2026-01":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{}}},"池田 美亜":{"2025-05":{"leads":0,"appo":1,"won":1,"amount":820000,"lost":{}}},"吉住 碧斗":{"2026-04":{"leads":0,"appo":1,"won":0,"amount":0,"lost":{}}}},"owner_list":["大山 耕太郎","福永 将也","駒田 智士","JobSpringAgent 事務局","田中 俊也","柴原 かやね","平井 良輝","池田 美亜","吉住 碧斗"],"lost_total":{"2026-03":{"失注（未商談）":1},"2025-12":{"失注（未商談）":2},"2026-04":{"失注（未商談）":2}}};
-const DASH_CONTACTS=[{"co":"株式会社ゼネラルリンク","cr":"2025/08/19","ym":"2025-08","ow":"1167175586","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"148310132806","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"廣澤 未来","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213892803704","ha":true,"hw":false,"ta":0,"dl":[{"ri":"59153721200","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","cr":"福永 将也","cd":"2026/04/14","iw":false,"il":false}]},{"co":"株式会社マイナビワークス","cr":"2026/04/06","ym":"2026-04","ow":"上野 芳純","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213864984367","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"藤森 悠太","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213893476774","ha":true,"hw":false,"ta":0,"dl":[{"ri":"58798379580","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","cr":"福永 将也","cd":"2026/04/07","iw":false,"il":false}]},{"co":"株式会社ココミライト","cr":"2026/03/03","ym":"2026-03","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206526470941","ha":true,"hw":false,"ta":0,"dl":[{"ri":"57856162871","st":"失注（未商談）","am":0,"pc":"セミナー_MIL2026_3_ 新規企業新規コンタクト","cr":"JobSpringAgent 事務局","cd":"2026/03/11","iw":false,"il":true}]},{"co":"株式会社タイズ","cr":"2026/04/06","ym":"2026-04","ow":"上野 芳純","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894303394","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社JALUX","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213865645696","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社レベチー","cr":"2025/12/11","ym":"2025-12","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"183935725652","ha":true,"hw":false,"ta":0,"dl":[{"ri":"51663160939","st":"失注（未商談）","am":0,"pc":"","cr":"田中 俊也","cd":"2025/12/12","iw":false,"il":true}]},{"co":"ウェアラ株式会社","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894706817","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社中西製作所","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893709846","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"スタイレム瀧定大阪株式会社","cr":"2026/03/03","ym":"2026-03","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206592416812","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895376954","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"未知株式会社","cr":"2026/03/06","ym":"2026-03","ow":"池田 美亜","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"207409667714","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"サントリーマーケティング＆コマース株式会社","cr":"2026/04/06","ym":"2026-04","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213890634169","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"東映アニメーション株式会社","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894712382","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"学校法人KTC学園","cr":"2025/07/04","ym":"2025-07","ow":"本島 翼","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"134697850128","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社日本マンパワー","cr":"2026/04/06","ym":"2026-04","ow":"86798493","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894342764","ha":true,"hw":false,"ta":0,"dl":[{"ri":"58906155615","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/08","iw":false,"il":false}]},{"co":"セキスイハイム東北株式会社","cr":"2026/02/22","ym":"2026-02","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"204536725928","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社博報堂アイ・スタジオ","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894360322","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"京セラドキュメントソリューションズジャパン株式会社","cr":"2026/03/19","ym":"2026-03","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"210169075616","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社マネジメントソリューションズ","cr":"2026/04/06","ym":"2026-04","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892821375","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"河西工業株式会社","cr":"2025/10/30","ym":"2025-10","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"170059384122","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ハウディ","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213890587516","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"トヨタ自動車株式会社","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894320417","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"みずき福祉会","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213854324385","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"エフィラグループ株式会社","cr":"2026/03/19","ym":"2026-03","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"210170003030","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"大鵬薬品工業株式会社","cr":"2026/03/03","ym":"2026-03","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206538736493","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ウテナ","cr":"2026/03/11","ym":"2026-03","ow":"本島 翼","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"208433735955","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"日本車輌製造株式会社","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893260813","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"大阪富士工業株式会社","cr":"2026/04/06","ym":"2026-04","ow":"392063794","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213845657224","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ＢｕｙＳｅｌｌ　Ｔｅｃｈｎｏｌｏｇｉｅｓ","cr":"2026/02/24","ym":"2026-02","ow":"藤森 悠太","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"204911980626","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"矢崎総業株式会社","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892826795","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"西日本プラント工業株式会社","cr":"2025/07/04","ym":"2025-07","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"134715540125","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213894292627","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社日本ネットワークサービス","cr":"2025/07/04","ym":"2025-07","ow":"61656491","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"134699577969","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"SATORI株式会社","cr":"2026/04/06","ym":"2026-04","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894354352","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"イー・ギャランティ株式会社","cr":"2025/07/04","ym":"2025-07","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"134699485557","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895091338","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社遠藤製作所","cr":"2026/03/03","ym":"2026-03","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206556593221","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"スパイダープラス株式会社","cr":"2025/11/25","ym":"2025-11","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"178982464409","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ネオキャリア","cr":"2026/04/06","ym":"2026-04","ow":"424851006","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894706818","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"ウライ株式会社","cr":"2026/01/16","ym":"2026-01","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"193754953287","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"リンクトイン・ジャパン株式会社","cr":"2026/03/03","ym":"2026-03","ow":"61656491","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206540129137","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"日本情報クリエイト株式会社","cr":"2026/01/16","ym":"2026-01","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"193728193370","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"東西株式会社","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892038837","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"ユナイトアンドグロウ株式会社","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893593379","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"レジェンダ・コーポレーション株式会社","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893476235","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"楽天証券株式会社","cr":"2026/01/09","ym":"2026-01","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"191550740076","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ワールドスタッフィング","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893598528","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895113357","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"ハウステンボス株式会社","cr":"2025/12/02","ym":"2025-12","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"181068717729","ha":true,"hw":false,"ta":0,"dl":[{"ri":"50870486791","st":"失注（未商談）","am":0,"pc":"","cr":"駒田 智士","cd":"2025/12/02","iw":false,"il":true}]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895129948","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ジェーエムエーシステムズ","cr":"2026/03/03","ym":"2026-03","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206554049042","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"住友林業ホームテック株式会社","cr":"2026/04/06","ym":"2026-04","ow":"山口 学","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893249313","ha":true,"hw":false,"ta":0,"dl":[{"ri":"59087018067","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/13","iw":false,"il":false}]},{"co":"株式会社ファンコミュニケーションズ","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213864832911","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"Hamee株式会社","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892687663","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895247764","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社タンガロイ","cr":"2026/04/06","ym":"2026-04","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213895358326","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ゼンリン","cr":"2026/04/06","ym":"2026-04","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894999199","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213895387966","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"NTTアノードエナジー株式会社","cr":"2025/07/04","ym":"2025-07","ow":"61656491","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"134714670998","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"生活協同組合パルシステム東京","cr":"2026/03/03","ym":"2026-03","ow":"61656491","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206527710640","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ワッツ","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892710951","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"KANAMEL株式会社","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894601298","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"ＳＯＭＰＯリスクマネジメント株式会社","cr":"2026/04/06","ym":"2026-04","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213891610741","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"日ポリ化工株式会社","cr":"2026/03/03","ym":"2026-03","ow":"1167175586","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206543227237","ha":true,"hw":true,"ta":1460000,"dl":[{"ri":"57553457456","st":"S","am":1460000,"pc":"セミナー_MIL2026_3_ 新規企業新規コンタクト","cr":"柴原 かやね","cd":"2026/03/06","iw":true,"il":false}]},{"co":"株式会社キャパ","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894398776","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社MSOL Digital","cr":"2025/10/30","ym":"2025-10","ow":"福永 将也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"170134951428","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213893909299","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"","cr":"2026/04/06","ym":"2026-04","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","ca":"その他","ci":"213865646186","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"第一三共ヘルスケア株式会社","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213894354353","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"zenken株式会社","cr":"2026/04/06","ym":"2026-04","ow":"653512364","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213893476234","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"住友林業緑化株式会社","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213890393918","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"学校法人神戸学院","cr":"2026/04/06","ym":"2026-04","ow":"田中 俊也","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213890634168","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ビザスク","cr":"2026/04/06","ym":"2026-04","ow":"土池 遥子","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892938274","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ドリーム・アーツ","cr":"2026/04/06","ym":"2026-04","ow":"大井 駿空","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213895241243","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"FutureOne株式会社","cr":"2025/05/27","ym":"2025-05","ow":"上野 芳純","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"120368377998","ha":true,"hw":true,"ta":820000,"dl":[{"ri":"54376221009","st":"C","am":230000,"pc":"展示会_HREXPO2025/6","cr":"平井 良輝","cd":"2026/01/23","iw":false,"il":false},{"ri":"38094855288","st":"S","am":820000,"pc":"オーガニック_概要資料","cr":"池田 美亜","cd":"2025/05/28","iw":true,"il":false}]},{"co":"ＡＩメカテック株式会社","cr":"2026/03/03","ym":"2026-03","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206525229969","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ティ・アイ・エス","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892579666","ha":true,"hw":false,"ta":0,"dl":[{"ri":"58906027265","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"吉住 碧斗","cd":"2026/04/08","iw":false,"il":false}]},{"co":"Solvvy株式会社","cr":"2026/03/03","ym":"2026-03","ow":"594279729","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者","ca":"その他","ci":"206518726319","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社ＳＲＣ","cr":"2026/04/06","ym":"2026-04","ow":"487831635","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213857261640","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社クラステクノロジー","cr":"2026/04/06","ym":"2026-04","ow":"吉住 碧斗","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892745296","ha":false,"hw":false,"ta":0,"dl":[]},{"co":"株式会社JR西日本コミュニケーションズ","cr":"2026/04/06","ym":"2026-04","ow":"駒田 智士","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892653934","ha":true,"hw":false,"ta":0,"dl":[{"ri":"58951341452","st":"失注（未商談）","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"駒田 智士","cd":"2026/04/08","iw":false,"il":true}]},{"co":"株式会社メイテックフィルダーズ","cr":"2026/04/06","ym":"2026-04","ow":"86798492","sp":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","sa":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","ca":"その他","ci":"213892727641","ha":true,"hw":false,"ta":0,"dl":[{"ri":"58798238771","st":"失注（未商談）","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/07","iw":false,"il":true}]}];
-const DASH_HS_C='https://app.hubspot.com/contacts/23871469/record/0-1/';
-const DASH_HS_D='https://app.hubspot.com/contacts/23871469/record/0-3/';
-const CATS=['オーガニック','SEO','リスティング','外部比較サイト','Facebook広告'];
-const CC={'オーガニック':'#34d399','SEO':'#4f8ef7','リスティング':'#fbbf24','外部比較サイト':'#f472b6','Facebook広告':'#7c5cfc','その他':'#8890a4'};
-const DASH_LC={'失注（競合）':'#f87171','失注（音信不通）':'#fb923c','失注（未商談）':'#fbbf24','失注（ATS利用なし）':'#a78bfa','失注（その他）':'#8890a4'};
-function gcat(n){if(n.includes('SEO'))return'SEO';if(n.includes('オーガニック'))return'オーガニック';if(n.includes('リスティング'))return'リスティング';if(n.includes('外部比較サイト'))return'外部比較サイト';if(n.includes('Facebook'))return'Facebook広告';return'その他';}
-function sn(n){return n.replace('【キャンペーン】','').replace('外部比較サイト_','').replace('オーガニック_','');}
-function fn(n){if(n>=100000000)return(n/100000000).toFixed(1)+'億';if(n>=10000)return Math.round(n/10000)+'万';return n.toLocaleString();}
-let measure='lead',selCat=null,sortCfg={key:'leads',dir:-1},sortOC={key:'appo',dir:-1};
-let dashCharts={},mContacts=[],mFiltered=[],mPage=0;
-const DASH_PS=30;
-function gm(){const mf=document.getElementById('month-from').value,mt=document.getElementById('month-to').value;return DB.months.filter(m=>(!mf||m>=mf)&&(!mt||m<=mt));}
-function acmp(key){const src=measure==='lead'?DB.lead_by_camp:DB.lead_by_appocamp,months=gm(),d=src[key]||{},r={leads:0,appo:0,won:0,amount:0,lost:{}};months.forEach(m=>{const v=d[m]||{};r.leads+=(v.leads||0);r.appo+=(v.appo||0);r.won+=(v.won||0);r.amount+=(v.amount||0);Object.entries(v.lost||{}).forEach(([k,n])=>{r.lost[k]=(r.lost[k]||0)+n;});});return r;}
-function acat(cat){const src=measure==='lead'?DB.cat_lead:DB.cat_appo,months=gm(),d=src[cat]||{},r={leads:0,appo:0,won:0,amount:0};months.forEach(m=>{const v=d[m]||{};r.leads+=(v.leads||0);r.appo+=(v.appo||0);r.won+=(v.won||0);r.amount+=(v.amount||0);});return r;}
-function aown(name){const months=gm(),d=DB.owner_stats[name]||{},r={appo:0,won:0,amount:0,lost:{}};months.forEach(m=>{const v=d[m]||{};r.appo+=(v.appo||0);r.won+=(v.won||0);r.amount+=(v.amount||0);Object.entries(v.lost||{}).forEach(([k,n])=>{r.lost[k]=(r.lost[k]||0)+n;});});return r;}
-function alost(){const months=gm(),r={};months.forEach(m=>{Object.entries(DB.lost_total[m]||{}).forEach(([k,n])=>{r[k]=(r[k]||0)+n;});});return r;}
-function amon(ym){const src=measure==='lead'?DB.cat_lead:DB.cat_appo,cats=selCat?[selCat]:CATS,r={leads:0,appo:0,won:0,amount:0};cats.forEach(cat=>{const v=(src[cat]||{})[ym]||{};r.leads+=(v.leads||0);r.appo+=(v.appo||0);r.won+=(v.won||0);r.amount+=(v.amount||0);});return r;}
-function gcamps(){const src=measure==='lead'?DB.lead_by_camp:DB.lead_by_appocamp;return Object.keys(src).filter(k=>!selCat||gcat(k)===selCat);}
+const META={"all_segs":{"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"]},"all_sources":["BizHint","HRpro","PRONI","facebook広告","オーガニック","セミナー","テレアポ代行","ミツモア","代理店","同一企業別担当者"],"all_lead_months":["2021-04","2022-01","2022-02","2023-08","2025-05","2025-07","2025-08","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"]};
+const COHORT_CONTACTS=[{"co":"株式会社ゼネラルリンク","ls":"","lym":"2025-08","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"148310132806","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213892803704","dl":[{"rid":"59153721200","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","cr":"福永 将也","cd":"2026/04/14","dym":"2026-04","iw":false,"il":false}]},{"co":"株式会社マイナビワークス","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213864984367","dl":[]},{"co":"株式会社フジヤ","ls":"オーガニック","lym":"2023-08","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"1935301","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213893476774","dl":[{"rid":"58798379580","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト","cr":"福永 将也","cd":"2026/04/07","dym":"2026-04","iw":false,"il":false}]},{"co":"株式会社ココミライト","ls":"テレアポ代行","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206526470941","dl":[{"rid":"57856162871","st":"失注（未商談）","am":0,"pc":"セミナー_MIL2026_3_ 新規企業新規コンタクト","cr":"JobSpringAgent 事務局","cd":"2026/03/11","dym":"2026-03","iw":false,"il":true}]},{"co":"株式会社タイズ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894303394","dl":[]},{"co":"株式会社JALUX","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213865645696","dl":[]},{"co":"株式会社レベチー","ls":"facebook広告","lym":"2025-12","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"183935725652","dl":[{"rid":"51663160939","st":"失注（未商談）","am":0,"pc":"","cr":"田中 俊也","cd":"2025/12/12","dym":"2025-12","iw":false,"il":true}]},{"co":"ウェアラ株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894706817","dl":[]},{"co":"株式会社中西製作所","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893709846","dl":[]},{"co":"スタイレム瀧定大阪株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206592416812","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895376954","dl":[]},{"co":"未知株式会社","ls":"オーガニック","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"207409667714","dl":[]},{"co":"サントリーマーケティング＆コマース株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213890634169","dl":[]},{"co":"東映アニメーション株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894712382","dl":[]},{"co":"学校法人KTC学園","ls":"セミナー","lym":"2025-07","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"134697850128","dl":[]},{"co":"株式会社日本マンパワー","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894342764","dl":[{"rid":"58906155615","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/08","dym":"2026-04","iw":false,"il":false}]},{"co":"セキスイハイム東北株式会社","ls":"facebook広告","lym":"2026-02","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"204536725928","dl":[]},{"co":"株式会社博報堂アイ・スタジオ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894360322","dl":[]},{"co":"京セラドキュメントソリューションズジャパン株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"210169075616","dl":[]},{"co":"株式会社マネジメントソリューションズ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892821375","dl":[]},{"co":"河西工業株式会社","ls":"セミナー","lym":"2025-10","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"170059384122","dl":[]},{"co":"株式会社ハウディ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213890587516","dl":[]},{"co":"トヨタ自動車株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894320417","dl":[]},{"co":"みずき福祉会","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213854324385","dl":[]},{"co":"エフィラグループ株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"210170003030","dl":[]},{"co":"大鵬薬品工業株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206538736493","dl":[]},{"co":"株式会社ウテナ","ls":"BizHint","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"208433735955","dl":[]},{"co":"日本車輌製造株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893260813","dl":[]},{"co":"大阪富士工業株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213845657224","dl":[]},{"co":"株式会社ＢｕｙＳｅｌｌ　Ｔｅｃｈｎｏｌｏｇｉｅｓ","ls":"PRONI","lym":"2026-02","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"204911980626","dl":[]},{"co":"矢崎総業株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892826795","dl":[]},{"co":"西日本プラント工業株式会社","ls":"セミナー","lym":"2025-07","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"134715540125","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213894292627","dl":[]},{"co":"株式会社日本ネットワークサービス","ls":"セミナー","lym":"2025-07","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"134699577969","dl":[]},{"co":"ＮＫリテール","ls":"セミナー","lym":"2021-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"1097331","dl":[]},{"co":"SATORI株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894354352","dl":[]},{"co":"イー・ギャランティ株式会社","ls":"セミナー","lym":"2025-07","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"134699485557","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895091338","dl":[]},{"co":"株式会社遠藤製作所","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206556593221","dl":[]},{"co":"スパイダープラス株式会社","ls":"セミナー","lym":"2025-11","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"178982464409","dl":[]},{"co":"株式会社ネオキャリア","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894706818","dl":[]},{"co":"ウライ株式会社","ls":"セミナー","lym":"2026-01","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"193754953287","dl":[]},{"co":"リンクトイン・ジャパン株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206540129137","dl":[]},{"co":"日本情報クリエイト株式会社","ls":"セミナー","lym":"2026-01","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"193728193370","dl":[]},{"co":"東西株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892038837","dl":[]},{"co":"ユナイトアンドグロウ株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893593379","dl":[]},{"co":"レジェンダ・コーポレーション株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893476235","dl":[]},{"co":"楽天証券株式会社","ls":"ミツモア","lym":"2026-01","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"191550740076","dl":[]},{"co":"株式会社ワールドスタッフィング","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893598528","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895113357","dl":[]},{"co":"ハウステンボス株式会社","ls":"同一企業別担当者","lym":"2025-12","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"181068717729","dl":[{"rid":"50870486791","st":"失注（未商談）","am":0,"pc":"","cr":"駒田 智士","cd":"2025/12/02","dym":"2025-12","iw":false,"il":true}]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895129948","dl":[]},{"co":"株式会社ジェーエムエーシステムズ","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206554049042","dl":[]},{"co":"住友林業ホームテック株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893249313","dl":[{"rid":"59087018067","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/13","dym":"2026-04","iw":false,"il":false}]},{"co":"シチズンファインデバイス株式会社","ls":"代理店","lym":"2022-02","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"1097239","dl":[]},{"co":"株式会社ファンコミュニケーションズ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213864832911","dl":[]},{"co":"Hamee株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892687663","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895247764","dl":[]},{"co":"株式会社タンガロイ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213895358326","dl":[]},{"co":"株式会社ミルボン","ls":"HRpro","lym":"2022-02","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"1398382","dl":[{"rid":"36165228719","st":"S","am":1000000,"pc":"外部比較サイト_HRpro_資料DL","cr":"深澤 陸","cd":"2025/02/05","dym":"2025-02","iw":true,"il":false}]},{"co":"株式会社ゼンリン","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894999199","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213895387966","dl":[]},{"co":"NTTアノードエナジー株式会社","ls":"セミナー","lym":"2025-07","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"134714670998","dl":[]},{"co":"生活協同組合パルシステム東京","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206527710640","dl":[]},{"co":"株式会社ワッツ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892710951","dl":[]},{"co":"KANAMEL株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894601298","dl":[]},{"co":"ＳＯＭＰＯリスクマネジメント株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213891610741","dl":[]},{"co":"日ポリ化工株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206543227237","dl":[{"rid":"57553457456","st":"S","am":1460000,"pc":"セミナー_MIL2026_3_ 新規企業新規コンタクト","cr":"柴原 かやね","cd":"2026/03/06","dym":"2026-03","iw":true,"il":false}]},{"co":"株式会社キャパ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894398776","dl":[]},{"co":"株式会社MSOL Digital","ls":"セミナー","lym":"2025-10","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"170134951428","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213893909299","dl":[]},{"co":"","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_新規コンタクト"],"ci":"213865646186","dl":[]},{"co":"トヨタ情報システム愛知株式会社","ls":"セミナー","lym":"2022-01","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"1100872","dl":[]},{"co":"第一三共ヘルスケア株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213894354353","dl":[]},{"co":"zenken株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213893476234","dl":[]},{"co":"住友林業緑化株式会社","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213890393918","dl":[]},{"co":"学校法人神戸学院","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213890634168","dl":[]},{"co":"株式会社ビザスク","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892938274","dl":[]},{"co":"株式会社ドリーム・アーツ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213895241243","dl":[]},{"co":"FutureOne株式会社","ls":"オーガニック","lym":"2025-05","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"120368377998","dl":[{"rid":"54376221009","st":"C","am":230000,"pc":"展示会_HREXPO2025/6","cr":"平井 良輝","cd":"2026/01/23","dym":"2026-01","iw":false,"il":false},{"rid":"38094855288","st":"S","am":820000,"pc":"オーガニック_概要資料","cr":"池田 美亜","cd":"2025/05/28","dym":"2025-05","iw":true,"il":false}]},{"co":"ＡＩメカテック株式会社","ls":"セミナー","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206525229969","dl":[]},{"co":"株式会社ティ・アイ・エス","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892579666","dl":[{"rid":"58906027265","st":"E","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"吉住 碧斗","cd":"2026/04/08","dym":"2026-04","iw":false,"il":false}]},{"co":"Solvvy株式会社","ls":"オーガニック","lym":"2026-03","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業同担当者"],"ci":"206518726319","dl":[]},{"co":"株式会社ＳＲＣ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213857261640","dl":[]},{"co":"株式会社クラステクノロジー","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892745296","dl":[]},{"co":"株式会社JR西日本コミュニケーションズ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892653934","dl":[{"rid":"58951341452","st":"失注（未商談）","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"駒田 智士","cd":"2026/04/08","dym":"2026-04","iw":false,"il":true}]},{"co":"株式会社メイテックフィルダーズ","ls":"セミナー","lym":"2026-04","seg":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"sb":["【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者"],"ci":"213892727641","dl":[{"rid":"58798238771","st":"失注（未商談）","am":0,"pc":"【キャンペーン】セミナー_MILアーカイブ視聴2026_04_同一企業別担当者","cr":"大山 耕太郎","cd":"2026/04/07","dym":"2026-04","iw":false,"il":true}]}];
+const COHORT_HS_C='https://app.hubspot.com/contacts/23871469/record/0-1/';
+const COHORT_HS_D='https://app.hubspot.com/contacts/23871469/record/0-3/';
+const COHORT_LC={'失注（競合）':'#f87171','失注（音信不通）':'#fb923c','失注（未商談）':'#fbbf24','失注（ATS利用なし）':'#a78bfa','失注（その他）':'#8890a4'};
+let currentView=1,currentResult=null,currentContacts=[];
+let sortOwnerCfg={key:'appo',dir:-1};
+let modalContacts=[],modalFiltered=[],modalPage=0;
+let cListFiltered=[],cListPage=0;
+const COHORT_PS=30;
+let cohortCharts={};
+function fmtN(n){if(n>=100000000)return(n/100000000).toFixed(1)+'億';if(n>=10000)return Math.round(n/10000)+'万';return n.toLocaleString();}
+function extractBase(seg){const s=seg.replace(/【キャンペーン】/g,'').trim();return s.split(' ')[0].replace(/_+$/,'');}
 
-function renderKPI(){const months=gm(),cats=selCat?[selCat]:CATS,src=measure==='lead'?DB.cat_lead:DB.cat_appo;let leads=0,appo=0,won=0,amount=0;cats.forEach(cat=>months.forEach(m=>{const v=(src[cat]||{})[m]||{};leads+=(v.leads||0);appo+=(v.appo||0);won+=(v.won||0);amount+=(v.amount||0);}));const ar=leads>0?(appo/leads*100).toFixed(1):0,wr=appo>0?(won/appo*100).toFixed(1):0,e2e=leads>0?(won/leads*100).toFixed(1):0;document.getElementById('krow').innerHTML=[{c:'bl',l:'リード数',v:leads.toLocaleString(),s:measure==='lead'?'新規リード起点':'アポ前接触起点'},{c:'tl',l:'アポ数',v:appo.toLocaleString(),s:`転換率 ${ar}%`},{c:'gn',l:'受注数',v:won.toLocaleString(),s:`アポ→受注 ${wr}%`},{c:'yw',l:'受注金額',v:'¥'+fn(amount),s:'計上ベース'},{c:'pk',l:'平均受注単価',v:won>0?'¥'+fn(Math.round(amount/won)):'-',s:'受注件数ベース'},{c:'pp',l:'リード→受注率',v:e2e+'%',s:'エンドtoエンド'}].map(c=>`<div class="kc ${c.c}"><div class="kl">${c.l}</div><div class="kv">${c.v}</div><div class="ks">${c.s}</div></div>`).join('');}
+function initFilters(){
+  const segSel=document.getElementById('f-seg-base');
+  segSel.innerHTML='<option value="">-- 選択してください --</option>'+
+    Object.keys(META.all_segs).map(k=>'<option value="'+(k)+'">'+(k)+'</option>').join('');
+  const srcSel=document.getElementById('f-source');
+  srcSel.innerHTML='<option value="">すべて</option>'+META.all_sources.map(s=>'<option value="'+(s)+'">'+(s)+'</option>').join('');
+  const mthSel=document.getElementById('f-lead-month');
+  const recent=[...META.all_lead_months].filter(m=>m>='2023-01').reverse();
+  mthSel.innerHTML='<option value="">すべて</option>'+recent.map(m=>'<option value="'+(m)+'">'+(m.replace('-','年'))+'月</option>').join('');
+}
 
-function renderCats(){document.getElementById('cat-row').innerHTML=CATS.map(cat=>{const d=acat(cat),col=CC[cat],ar=d.leads>0?(d.appo/d.leads*100).toFixed(0):0,wr=d.appo>0?(d.won/d.appo*100).toFixed(0):0;return`<div class="cat-card ${selCat===cat?'sel':''}" onclick="toggleCat('${cat}')" style="border-top:2px solid ${col}"><div class="cc-top"><div class="cc-name" style="color:${col}">${cat}</div><div class="cc-badge">${d.leads}件</div></div><div class="cc-stats"><div class="cc-stat"><div class="cc-stat-v" style="color:var(--tl)">${d.appo}</div><div class="cc-stat-l">アポ(${ar}%)</div></div><div class="cc-stat"><div class="cc-stat-v" style="color:var(--gn)">${d.won}</div><div class="cc-stat-l">受注(${wr}%)</div></div><div class="cc-stat"><div class="cc-stat-v" style="color:var(--yw)">${d.amount>0?'¥'+fn(d.amount):'-'}</div><div class="cc-stat-l">金額</div></div></div></div>`;}).join('');}
-function toggleCat(cat){selCat=selCat===cat?null:cat;render();}
+function setView(v){
+  currentView=v;
+  document.getElementById('btn-v1').classList.toggle('on',v===1);
+  document.getElementById('btn-v2').classList.toggle('on',v===2);
+  document.getElementById('fg-source').style.display=v===1?'':'none';
+  document.getElementById('fg-lead-month').style.display=v===1?'':'none';
+  if(currentResult) runAnalysis();
+}
 
-function renderFunnel(){const camps=gcamps(),rows=camps.map(k=>{const d=acmp(k);return{name:sn(k),full:k,cat:gcat(k),...d,ar:d.leads>0?d.appo/d.leads*100:0,wr:d.appo>0?d.won/d.appo*100:0};}).filter(d=>d.leads>0||d.appo>0).sort((a,b)=>b.leads-a.leads).slice(0,10);if(!rows.length){document.getElementById('funnel-wrap').innerHTML='<p style="color:var(--t3);padding:12px">データなし</p>';return;}const maxL=Math.max(...rows.map(d=>d.leads),1);document.getElementById('funnel-wrap').innerHTML=rows.map(d=>{const col=CC[d.cat]||'#8890a4',wl=(d.leads/maxL*100).toFixed(0),wa=(d.appo/maxL*100).toFixed(0),ww=(d.won/maxL*100).toFixed(0),nm=d.name.length>22?d.name.slice(0,22)+'…':d.name;return`<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--t2);margin-bottom:2px;font-weight:500">${nm}</div><div class="frow"><div class="flbl">リード</div><div class="fbw"><div class="fb" style="width:${wl}%;background:${col}22;color:${col}">${d.leads}</div></div><div class="frt">${d.leads}</div></div><div class="frow"><div class="flbl">アポ</div><div class="fbw"><div class="fb" style="width:${wa}%;background:${col}55;color:${col}">${d.appo}</div></div><div class="frt">${d.ar.toFixed(0)}%</div></div><div class="frow"><div class="flbl">受注</div><div class="fbw"><div class="fb" style="width:${ww}%;background:${col};color:#fff">${d.won}</div></div><div class="frt">${d.wr.toFixed(0)}%</div></div></div>`;}).join('');mkChart('chart-rate',{type:'bar',data:{labels:rows.map(d=>d.name.length>10?d.name.slice(0,10)+'…':d.name),datasets:[{label:'転換率%',data:rows.map(d=>+d.ar.toFixed(1)),backgroundColor:'#22d3ee33',borderColor:'#22d3ee',borderWidth:1},{label:'受注率%',data:rows.map(d=>+d.wr.toFixed(1)),backgroundColor:'#34d39933',borderColor:'#34d399',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{maxRotation:35,font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>v+'%',font:{size:10}}}}}});mkChart('chart-amt',{type:'bar',data:{labels:rows.map(d=>d.name.length>14?d.name.slice(0,14)+'…':d.name),datasets:[{label:'受注金額',data:rows.map(d=>d.amount),backgroundColor:rows.map(d=>(CC[d.cat]||'#8890a4')+'55'),borderColor:rows.map(d=>CC[d.cat]||'#8890a4'),borderWidth:1}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'¥'+fn(v),font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});}
+function runAnalysis(){
+  const segBase=document.getElementById('f-seg-base').value;
+  if(!segBase){alert('キャンペーンを選択してください');return;}
+  const srcFilter=currentView===1?document.getElementById('f-source').value:'';
+  const mthFilter=currentView===1?document.getElementById('f-lead-month').value:'';
+  const variants=META.all_segs[segBase]||[];
+  let filtered;
+  if(currentView===1){
+    filtered=COHORT_CONTACTS.filter(c=>{
+      if(!c.sb.includes(segBase)) return false;
+      if(srcFilter && c.ls!==srcFilter) return false;
+      if(mthFilter && c.lym!==mthFilter) return false;
+      return true;
+    });
+  } else {
+    filtered=COHORT_CONTACTS.filter(c=>
+      c.dl.some(d=>{
+        const pBases=d.pc.split(',').map(s=>extractBase(s.trim())).filter(Boolean);
+        return pBases.includes(segBase);
+      })
+    );
+  }
+  currentContacts=filtered;
+  currentResult=aggregateCohort(filtered,segBase,currentView);
+  currentResult.variants=variants;
+  currentResult.segBase=segBase;
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('result').style.display='block';
+  renderAll();
+}
 
-function renderMonthly(){const months=gm(),mData=months.map(m=>{const d=amon(m);return{lbl:m.replace('-','年')+'月',...d};});mkChart('chart-monthly',{type:'line',data:{labels:mData.map(d=>d.lbl),datasets:[{label:'リード数',data:mData.map(d=>d.leads),borderColor:'#4f8ef7',backgroundColor:'#4f8ef722',tension:.3,fill:true,pointRadius:4},{label:'アポ数',data:mData.map(d=>d.appo),borderColor:'#22d3ee',tension:.3,pointRadius:4},{label:'受注数',data:mData.map(d=>d.won),borderColor:'#34d399',tension:.3,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});mkChart('chart-monthly-amt',{type:'bar',data:{labels:mData.map(d=>d.lbl),datasets:[{label:'受注金額',data:mData.map(d=>d.amount),backgroundColor:'#fbbf2444',borderColor:'#fbbf24',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'¥'+fn(v)},beginAtZero:true}}}});}
+function aggregateCohort(contacts,segBase,view){
+  const leads={},appo={},won={},amount={},lost={},ownerMap={};
+  contacts.forEach(c=>{
+    if(view===1 && c.lym) leads[c.lym]=(leads[c.lym]||0)+1;
+    const deals=view===1?c.dl:c.dl.filter(d=>{
+      const pBases=d.pc.split(',').map(s=>extractBase(s.trim())).filter(Boolean);
+      return pBases.includes(segBase);
+    });
+    deals.forEach(d=>{
+      const ym=d.dym;if(!ym)return;
+      appo[ym]=(appo[ym]||0)+1;
+      if(d.iw){won[ym]=(won[ym]||0)+1;amount[ym]=(amount[ym]||0)+d.am;}
+      if(d.il){if(!lost[ym])lost[ym]={};lost[ym][d.st]=(lost[ym][d.st]||0)+1;}
+      const cr=d.cr||'不明';
+      if(!ownerMap[cr])ownerMap[cr]={appo:0,won:0,amount:0};
+      ownerMap[cr].appo++;
+      if(d.iw){ownerMap[cr].won++;ownerMap[cr].amount+=d.am;}
+    });
+  });
+  return{leads,appo,won,amount,lost,ownerMap,totalLeads:contacts.length};
+}
 
-function renderHeatmap(){const metric=document.getElementById('hm-metric').value,months=gm(),src=measure==='lead'?DB.lead_by_camp:DB.lead_by_appocamp,camps=gcamps(),map={};camps.forEach(k=>{const d=src[k]||{},row={};months.forEach(m=>{row[m]=(d[m]||{})[metric]||0;});if(months.some(m=>row[m]>0))map[k]=row;});const keys=Object.keys(map).sort((a,b)=>months.reduce((s,m)=>s+map[b][m]-map[a][m],0));if(!keys.length){document.getElementById('hm-cont').innerHTML='<p style="color:var(--t3);padding:12px">データなし</p>';return;}let maxV=1;keys.forEach(k=>months.forEach(m=>{if(map[k][m]>maxV)maxV=map[k][m];}));function cellBg(v){if(!v)return'transparent';const t=Math.sqrt(v/maxV);return`rgba(${Math.round(34+t*(79-34))},${Math.round(211+t*(142-211))},${Math.round(153+t*(247-153))},${(0.25+t*.55).toFixed(2)})`;}function fmtC(v){if(!v)return'';if(metric==='amount')return v>=10000?Math.round(v/10000)+'万':''+v;return v;}document.getElementById('hm-cont').innerHTML=`<table class="hmt"><thead><tr><th class="rlbl">キャンペーン</th>${months.map(m=>`<th>${m.slice(5)}月</th>`).join('')}</tr></thead><tbody>${keys.map(k=>`<tr><td class="rlbl" title="${k}">${sn(k)}</td>${months.map(m=>`<td class="hmc" style="background:${cellBg(map[k][m])}" title="${map[k][m]}">${fmtC(map[k][m])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;}
+function renderAll(){
+  renderVariants();renderKPI();
+  const active=document.querySelector('.pnl.on');
+  if(active?.id==='pnl-cohort')   renderCohort();
+  if(active?.id==='pnl-trend')    renderTrend();
+  if(active?.id==='pnl-owner')    renderOwner();
+  if(active?.id==='pnl-lost')     renderLost();
+  if(active?.id==='pnl-contacts') renderContactList();
+}
 
-function renderOwner(){let owners=DB.owner_list.map(name=>{const d=aown(name);return{name,...d,wonRate:d.appo>0?d.won/d.appo*100:0,cpa:d.won>0?d.amount/d.won:0};}).filter(d=>d.appo>0).sort((a,b)=>(b[sortOC.key]||0)-(a[sortOC.key]||0));const top=owners.slice(0,10),labels=top.map(d=>d.name.length>8?d.name.slice(0,8)+'…':d.name);mkChart('chart-owner',{type:'bar',data:{labels,datasets:[{label:'アポ数',data:top.map(d=>d.appo),backgroundColor:'#22d3ee44',borderColor:'#22d3ee',borderWidth:1},{label:'受注数',data:top.map(d=>d.won),backgroundColor:'#34d39988',borderColor:'#34d399',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});mkChart('chart-owner-amt',{type:'bar',data:{labels,datasets:[{label:'受注金額',data:top.map(d=>d.amount),backgroundColor:'#fbbf2455',borderColor:'#fbbf24',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'¥'+fn(v)},beginAtZero:true}}}});function rb(v){const c=v>=40?'bg':v>=20?'by':'br';return`<span class="badge ${c}">${v.toFixed(1)}%</span>`;}document.getElementById('owner-tbl-body').innerHTML=owners.map(d=>`<tr><td>${d.name}</td><td class="tn">${d.appo}</td><td class="tn">${d.won}</td><td class="tn">${rb(d.wonRate)}</td><td class="tn">${d.amount>0?'¥'+d.amount.toLocaleString():'-'}</td><td class="tn">${d.cpa>0?'¥'+fn(Math.round(d.cpa)):'-'}</td></tr>`).join('');}
-function sortOwner(key){sortOC=sortOC.key===key?{key,dir:sortOC.dir*-1}:{key,dir:-1};renderOwner();}
+function renderVariants(){
+  const r=currentResult;
+  const chips=r.variants.map(v=>'<span class="chip">'+(v)+'</span>').join('');
+  document.getElementById('variant-area').innerHTML='<strong>'+(r.segBase)+'</strong>（'+(r.variants.length)+'バリアント）<br><div style="margin-top:6px">'+(chips)+'</div>';
+}
 
-function renderLost(){const lost=alost(),reasons=Object.keys(LC),total=Object.values(lost).reduce((s,n)=>s+n,0)||1;mkChart('chart-lost-pie',{type:'doughnut',data:{labels:reasons.map(r=>r.replace('失注（','').replace('）','')),datasets:[{data:reasons.map(r=>lost[r]||0),backgroundColor:reasons.map(r=>DASH_LC[r]+'aa'),borderColor:reasons.map(r=>DASH_LC[r]),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10},padding:8}}}}});const months=gm(),mData=months.map(m=>{const d=DB.lost_total[m]||{};return{lbl:m.replace('-','年')+'月',data:reasons.map(r=>d[r]||0)};});mkChart('chart-lost-trend',{type:'bar',data:{labels:mData.map(d=>d.lbl),datasets:reasons.map((r,i)=>({label:r.replace('失注（','').replace('）',''),data:mData.map(d=>d.data[i]),backgroundColor:DASH_LC[r]+'77',borderColor:DASH_LC[r],borderWidth:1}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:8,font:{size:10}}}},scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});const maxN=Math.max(...Object.values(lost),1);document.getElementById('lost-bars').innerHTML=reasons.map(r=>{const n=lost[r]||0,pct=(n/total*100).toFixed(1),w=(n/maxN*100).toFixed(0);return`<div class="lost-bar-row"><div class="lost-lbl">${r.replace('失注（','').replace('）','')}</div><div class="lost-bw"><div class="lost-b" style="width:${w}%;background:${DASH_LC[r]}88;color:#fff">${n}件</div></div><div class="lost-n">${pct}%</div></div>`;}).join('');}
+function renderKPI(){
+  const r=currentResult;
+  const tA=Object.values(r.appo).reduce((s,n)=>s+n,0);
+  const tW=Object.values(r.won ).reduce((s,n)=>s+n,0);
+  const tAmt=Object.values(r.amount).reduce((s,n)=>s+n,0);
+  const ar=r.totalLeads>0?(tA/r.totalLeads*100).toFixed(1):0;
+  const wr=tA>0?(tW/tA*100).toFixed(1):0;
+  document.getElementById('krow').innerHTML=[
+    {c:'bl',l:'リード数',v:r.totalLeads.toLocaleString(),s:'対象コンタクト'},
+    {c:'tl',l:'アポ数（累計）',v:tA.toLocaleString(),s:'転換率 '+(ar)+'%'},
+    {c:'gn',l:'受注数（累計）',v:tW.toLocaleString(),s:'アポ→受注 '+(wr)+'%'},
+    {c:'yw',l:'受注金額（累計）',v:'¥'+fmtN(tAmt),s:'計上ベース'},
+    {c:'pk',l:'平均受注単価',v:tW>0?'¥'+fmtN(Math.round(tAmt/tW)):'-',s:''},
+    {c:'pp',l:'リード→受注率',v:r.totalLeads>0?(tW/r.totalLeads*100).toFixed(1)+'%':'-',s:''},
+  ].map(c=>'<div class="kc '+(c.c)+'"><div class="kl">'+(c.l)+'</div><div class="kv">'+(c.v)+'</div><div class="ks">'+(c.s)+'</div></div>').join('');
+}
 
-function renderTable(){const camps=gcamps(),rows=camps.map(k=>{const d=acmp(k);return{name:sn(k),full:k,cat:gcat(k),...d,appoRate:d.leads>0?d.appo/d.leads*100:0,wonRate:d.appo>0?d.won/d.appo*100:0,cpa:d.won>0?d.amount/d.won:0};}).filter(d=>d.leads>0||d.appo>0);rows.sort((a,b)=>{const av=a[sortCfg.key],bv=b[sortCfg.key];return typeof av==='string'?av.localeCompare(bv)*sortCfg.dir:(av-bv)*sortCfg.dir;});function rb(v){const c=v>=30?'bg':v>=10?'by':'br';return`<span class="badge ${c}">${v.toFixed(1)}%</span>`;}document.getElementById('tbl-body').innerHTML=rows.map(d=>{const col=CC[d.cat]||'#8890a4';return`<tr><td title="${d.full}">${d.name.length>26?d.name.slice(0,26)+'…':d.name}</td><td><span class="badge" style="background:${col}22;color:${col}">${d.cat}</span></td><td class="tn">${d.leads}</td><td class="tn">${d.appo}</td><td class="tn">${rb(d.appoRate)}</td><td class="tn">${d.won}</td><td class="tn">${rb(d.wonRate)}</td><td class="tn">${d.amount>0?'¥'+d.amount.toLocaleString():'-'}</td><td class="tn">${d.cpa>0?'¥'+fn(Math.round(d.cpa)):'-'}</td><td style="text-align:center"><button onclick="openModal('${d.full}')" style="background:var(--bg3);border:1px solid var(--bd2);color:var(--ac);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif">詳細 →</button></td></tr>`;}).join('');}
-function sortTbl(key){sortCfg=sortCfg.key===key?{key,dir:sortCfg.dir*-1}:{key,dir:-1};renderTable();}
+function renderCohort(){
+  const r=currentResult;
+  const allYms=new Set([...Object.keys(r.leads),...Object.keys(r.appo),...Object.keys(r.won)]);
+  const months=[...allYms].sort();
+  if(!months.length){document.getElementById('cohort-wrap').innerHTML='<p style="color:var(--t3);padding:16px">データなし</p>';return;}
+  const thCols=months.map(m=>'<th>'+(m.replace('-','年'))+'月</th>').join('');
+  const maxAppo=Math.max(...months.map(m=>r.appo[m]||0),1);
+  function cell(val,cls,clickable,ym,type){
+    if(!val&&val!==0)return'<td class="zero">-</td>';
+    if(!val)return'<td class="zero">-</td>';
+    const heat=val/maxAppo>=0.5?'heat-high':val/maxAppo>=0.2?'heat-mid':'';
+    if(clickable&&val>0){
+      return'<td class="'+(cls)+' '+(heat)+' clickable-cell" onclick="openCohortModal(\''+(ym)+'\',\''+(type)+'\')" title="クリックで詳細">'+(val)+'</td>';
+    }
+    return'<td class="'+(cls)+' '+(heat)+'">'+(val||'-')+'</td>';
+  }
+  const rowDefs=[
+    {label:'リード獲得数',key:'leads',cls:'lead-cell',cl:false},
+    {label:'アポ取得数',key:'appo',cls:'appo-cell',cl:true,type:'appo'},
+    {label:'受注数',key:'won',cls:'won-cell',cl:true,type:'won'},
+    {label:'アポ転換率',key:'ar',cls:'rate-cell',cl:false},
+    {label:'受注金額',key:'amt',cls:'amt-cell',cl:false},
+    {label:'累計受注金額',key:'cumamt',cls:'amt-cell',cl:false},
+  ];
+  let cumAmt=0;
+  const rowsHtml=rowDefs.map(row=>{
+    const cells=months.map(m=>{
+      if(row.key==='leads') return cell(r.leads[m]||0,row.cls,false,m,'');
+      if(row.key==='appo')  return cell(r.appo[m]||0,row.cls,row.cl,m,row.type);
+      if(row.key==='won')   return cell(r.won[m]||0,row.cls,row.cl,m,row.type);
+      if(row.key==='ar'){
+        const l=r.leads[m]||0,a=r.appo[m]||0;
+        const v=l>0?(a/l*100).toFixed(0)+'%':a>0?'(-)':'';
+        return v?'<td class="'+(row.cls)+'">'+(v)+'</td>':'<td class="zero">-</td>';
+      }
+      if(row.key==='amt'){
+        const v=r.amount[m]||0;
+        return v>0?'<td class="'+(row.cls)+'">¥'+(fmtN(v))+'</td>':'<td class="zero">-</td>';
+      }
+      if(row.key==='cumamt'){
+        cumAmt+=(r.amount[m]||0);
+        return cumAmt>0?'<td class="'+(row.cls)+'">¥'+(fmtN(cumAmt))+'</td>':'<td class="zero">-</td>';
+      }
+      return '<td>-</td>';
+    }).join('');
+    return'<tr><td class="row-lbl">'+(row.label)+'</td>'+(cells)+'</tr>';
+  }).join('');
+  document.getElementById('cohort-wrap').innerHTML='<table class="cohort-tbl"><thead><tr><th class="row-hdr">指標 ╲ 月</th>'+(thCols)+'</tr></thead><tbody>'+(rowsHtml)+'</tbody></table>';
+  document.getElementById('cohort-title').textContent=currentView===1
+    ?'コホートテーブル（リード起点：アポ・受注は実際の月）'
+    :'コホートテーブル（アポ前接触起点：商談作成月ベース）';
+}
 
-// ===== Modal drilldown =====
-function openModal(campFull){const months=gm(),campShort=campFull.replace('【キャンペーン】','');mContacts=DASH_CONTACTS.filter(c=>{if(!months.includes(c.ym))return false;if(measure==='lead')return c.sp===campShort;return c.dl.some(d=>d.pc===campShort);});const d=acmp(campFull);document.getElementById('modal-title').textContent=campShort;document.getElementById('modal-sub').textContent=`カテゴリ：${gcat(campFull)} ／ 期間：${months[0]||''}〜${months[months.length-1]||''}`;document.getElementById('modal-kpi').innerHTML=`<span class="badge bb">リード ${d.leads}</span><span class="badge" style="background:rgba(34,211,238,.15);color:var(--tl)">アポ ${d.appo}</span><span class="badge bg">受注 ${d.won}</span>${d.amount>0?`<span class="badge by">¥${fn(d.amount)}</span>`:''}`;document.getElementById('modal-search').value='';document.getElementById('modal-filter-status').value='all';document.getElementById('modal-bg').classList.add('open');document.body.style.overflow='hidden';filterContacts();}
+function renderTrend(){
+  const r=currentResult;
+  const months=[...new Set([...Object.keys(r.appo),...Object.keys(r.won)])].sort();
+  const labels=months.map(m=>m.replace('-','年')+'月');
+  mkChart('chart-trend',{type:'line',data:{labels,datasets:[
+    {label:'アポ数',data:months.map(m=>r.appo[m]||0),borderColor:'#22d3ee',backgroundColor:'#22d3ee22',tension:.3,fill:true,pointRadius:4},
+    {label:'受注数',data:months.map(m=>r.won[m]||0),borderColor:'#34d399',tension:.3,pointRadius:4},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+  mkChart('chart-trend-amt',{type:'bar',data:{labels,datasets:[
+    {label:'受注金額',data:months.map(m=>r.amount[m]||0),backgroundColor:'#fbbf2444',borderColor:'#fbbf24',borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'¥'+fmtN(v)},beginAtZero:true}}}});
+}
+
+function renderOwner(){
+  const r=currentResult;
+  let owners=Object.entries(r.ownerMap).map(([name,d])=>({name,...d,wonRate:d.appo>0?d.won/d.appo*100:0,cpa:d.won>0?d.amount/d.won:0})).filter(d=>d.appo>0).sort((a,b)=>(b[sortOwnerCfg.key]||0)-(a[sortOwnerCfg.key]||0));
+  const top=owners.slice(0,10),labels=top.map(d=>d.name.length>8?d.name.slice(0,8)+'…':d.name);
+  mkChart('chart-owner',{type:'bar',data:{labels,datasets:[
+    {label:'アポ数',data:top.map(d=>d.appo),backgroundColor:'#22d3ee44',borderColor:'#22d3ee',borderWidth:1},
+    {label:'受注数',data:top.map(d=>d.won),backgroundColor:'#34d39988',borderColor:'#34d399',borderWidth:1},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+  mkChart('chart-owner-amt',{type:'bar',data:{labels,datasets:[
+    {label:'受注金額',data:top.map(d=>d.amount),backgroundColor:'#fbbf2455',borderColor:'#fbbf24',borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'¥'+fmtN(v)},beginAtZero:true}}}});
+  function rb(v){const c=v>=40?'bg':v>=20?'by':'br';return'<span class="badge '+(c)+'">'+(v.toFixed(1))+'%</span>';}
+  document.getElementById('owner-tbl').innerHTML=owners.map(d=>
+    '<tr><td>'+(d.name)+'</td><td class="tn">'+(d.appo)+'</td><td class="tn">'+(d.won)+'</td><td class="tn">'+(rb(d.wonRate))+'</td><td class="tn">'+(d.amount>0?'¥'+d.amount.toLocaleString():'-')+'</td><td class="tn">'+(d.cpa>0?'¥'+fmtN(Math.round(d.cpa)):'-')+'</td></tr>'
+  ).join('');
+}
+function sortOwner(key){sortOwnerCfg=sortOwnerCfg.key===key?{key,dir:sortOwnerCfg.dir*-1}:{key,dir:-1};renderOwner();}
+
+function renderLost(){
+  const r=currentResult;
+  const reasons=Object.keys(COHORT_LC);
+  const totals={};
+  Object.values(r.lost).forEach(m=>Object.entries(m).forEach(([k,v])=>{totals[k]=(totals[k]||0)+v;}));
+  mkChart('chart-lost-pie',{type:'doughnut',data:{labels:reasons.map(r=>r.replace('失注（','').replace('）','')),
+    datasets:[{data:reasons.map(r=>totals[r]||0),backgroundColor:reasons.map(r=>COHORT_LC[r]+'aa'),borderColor:reasons.map(r=>COHORT_LC[r]),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10},padding:8}}}}});
+  const months=Object.keys(r.lost).sort();
+  mkChart('chart-lost-trend',{type:'bar',data:{labels:months.map(m=>m.replace('-','年')+'月'),
+    datasets:reasons.map(rr=>({label:rr.replace('失注（','').replace('）',''),data:months.map(m=>(r.lost[m]||{})[rr]||0),backgroundColor:COHORT_LC[rr]+'77',borderColor:COHORT_LC[rr],borderWidth:1}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:8,font:{size:10}}}},
+      scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+}
+
+function renderContactList(){
+  cListFiltered=[...currentContacts];cListPage=0;
+  document.getElementById('contact-search').value='';
+  document.getElementById('contact-status-filter').value='all';
+  document.getElementById('contact-count').textContent=cListFiltered.length+'件';
+  renderContactListPage();
+}
+function filterContactsList(){
+  const q=document.getElementById('contact-search').value.toLowerCase();
+  const st=document.getElementById('contact-status-filter').value;
+  cListFiltered=currentContacts.filter(c=>{
+    if(q&&!c.co.toLowerCase().includes(q)&&!c.dl.some(d=>d.cr.toLowerCase().includes(q))) return false;
+    if(st==='won') return c.dl.some(d=>d.iw);
+    if(st==='appo') return c.dl.length>0;
+    if(st==='lost') return c.dl.some(d=>d.il);
+    if(st==='none') return c.dl.length===0;
+    return true;
+  });
+  cListPage=0;
+  document.getElementById('contact-count').textContent=cListFiltered.length+'件';
+  renderContactListPage();
+}
+function renderContactListPage(){
+  const start=cListPage*COHORT_PS,page=cListFiltered.slice(start,start+COHORT_PS);
+  document.getElementById('contact-list').innerHTML=buildContactRows(page,start,'cl');
+  buildPagination('contact-pagination',cListFiltered.length,cListPage,p=>{cListPage=p;renderContactListPage();});
+}
+
+function openCohortModal(ym,type){
+  const filtered=currentContacts.filter(c=>c.dl.some(d=>d.dym===ym&&(type==='appo'||d.iw)));
+  document.getElementById('modal-title').textContent=(ym.replace('-','年'))+'月 - '+(type==='appo'?'アポ取得':'受注')+'コンタクト';
+  document.getElementById('modal-sub').textContent=(filtered.length)+'件 ／ '+(currentResult.segBase);
+  modalContacts=filtered;modalFiltered=[...filtered];modalPage=0;
+  document.getElementById('modal-search').value='';
+  document.getElementById('modal-count').textContent=filtered.length+'件';
+  document.getElementById('modal-bg').classList.add('open');
+  document.body.style.overflow='hidden';
+  renderModal();
+}
+function filterModal(){
+  const q=document.getElementById('modal-search').value.toLowerCase();
+  modalFiltered=modalContacts.filter(c=>!q||c.co.toLowerCase().includes(q));
+  modalPage=0;document.getElementById('modal-count').textContent=modalFiltered.length+'件';renderModal();
+}
+function renderModal(){
+  const start=modalPage*COHORT_PS,page=modalFiltered.slice(start,start+COHORT_PS);
+  document.getElementById('modal-contacts').innerHTML=buildContactRows(page,start,'mo');
+  buildPagination('modal-pagination',modalFiltered.length,modalPage,p=>{modalPage=p;renderModal();});
+}
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');document.body.style.overflow='';}
-function filterContacts(){const q=document.getElementById('modal-search').value.toLowerCase(),st=document.getElementById('modal-filter-status').value;mFiltered=mContacts.filter(c=>{if(q&&!c.co.toLowerCase().includes(q)&&!(c.ow||'').toLowerCase().includes(q)&&!c.sp.toLowerCase().includes(q))return false;if(st==='won')return c.hw;if(st==='appo')return c.ha;if(st==='lost')return c.dl.some(d=>d.il);if(st==='none')return!c.ha;return true;});mPage=0;document.getElementById('modal-count').textContent=mFiltered.length+'件';renderModalContacts();}
-function renderModalContacts(){const start=mPage*DASH_PS,page=mFiltered.slice(start,start+DASH_PS);document.getElementById('modal-contacts').innerHTML=page.map((c,idx)=>{const gi=start+idx,hasWon=c.hw,hasAppo=c.ha;const sb=hasWon?'<span class="badge badge-won">受注</span>':hasAppo?'<span class="badge badge-prog">アポあり</span>':'<span class="badge badge-none">リードのみ</span>';const wa=c.ta>0?`<span style="font-family:'DM Mono',monospace;color:var(--gn);font-size:11px">¥${c.ta.toLocaleString()}</span>`:'';const hsC=c.ci?`<a href="${DASH_HS_C}${c.ci}" target="_blank" class="hs-link">🔗 コンタクト</a>`:'';const dealsHtml=c.dl.map(d=>{const cls=d.iw?'won':d.il?'lost':'';const sb2=d.iw?'<span class="badge badge-won">受注 S</span>':d.il?`<span class="badge badge-lost">${d.st}</span>`:`<span class="badge badge-prog">${d.st}</span>`;const hsD=d.ri?`<a href="${DASH_HS_D}${d.ri}" target="_blank" class="hs-link">🔗 取引</a>`:'';return`<div class="deal-card ${cls}"><div class="deal-top">${sb2}<div style="display:flex;gap:4px">${hsD}</div></div><div class="deal-fields">${d.am>0?`金額：<span>¥${d.am.toLocaleString()}</span><br>`:''}${d.cr?`担当者：<span>${d.cr}</span><br>`:''}${d.cd?`商談作成：<span>${d.cd}</span><br>`:''}${d.pc?`商談前キャンペーン：<span style="font-size:10px">${d.pc}</span>`:''}</div></div>`;}).join('');return`<div class="contact-row" id="cr-${gi}"><div class="cr-main" onclick="toggleCR(${gi})"><div class="cr-company">${c.co||'（会社名なし）'}</div><div class="cr-meta">${sb}${wa}<span style="font-size:10px;color:var(--t3)">${c.cr}</span><span style="font-size:10px;color:var(--t3)">${c.sp}</span>${hsC}</div><span class="cr-toggle">▶</span></div><div class="cr-detail"><div class="cr-detail-inner"><div style="font-size:11px;color:var(--t3);margin-bottom:8px">Segment Name（全）：<span style="color:var(--t2)">${c.sa||c.sp}</span>${c.ow?' ／ オーナーID：<span style="color:var(--t2)">'+c.ow+'</span>':''}</div>${c.dl.length>0?`<div style="font-size:10px;color:var(--t3);margin-bottom:6px">商談 ${c.dl.length}件</div><div class="deal-grid">${dealsHtml}</div>`:'<div style="font-size:11px;color:var(--t3)">商談なし（リードのみ）</div>'}</div></div></div>`;}).join('');const totalPages=Math.ceil(mFiltered.length/DASH_PS);if(totalPages>1){const pages=[];for(let i=0;i<Math.min(totalPages,20);i++)pages.push(`<button class="page-btn ${i===mPage?'on':''}" onclick="goPage(${i})">${i+1}</button>`);document.getElementById('modal-pagination').innerHTML=`<span>${start+1}-${Math.min(start+DASH_PS,mFiltered.length)} / ${mFiltered.length}件</span><div class="page-btns">${pages.join('')}</div>`;}else{document.getElementById('modal-pagination').innerHTML='';}}
-function toggleCR(idx){const el=document.getElementById('cr-'+idx);el.classList.toggle('expanded');}
-function goPage(p){mPage=p;renderModalContacts();document.getElementById('modal-body').scrollTo(0,0);}
 
-function mkChart(id,cfg){const el=document.getElementById(id);if(!el)return;if(dashCharts[id])dashCharts[id].destroy();Chart.defaults.color='#8890a4';Chart.defaults.font={family:"'Noto Sans JP',sans-serif",size:11};dashCharts[id]=new Chart(el,cfg);}
-function initMF(){['month-from','month-to'].forEach((id,i)=>{const sel=document.getElementById(id);sel.innerHTML=`<option value="">${i===0?'月From（全期間）':'月To（全期間）'}</option>`+DB.months.map(m=>`<option value="${m}">${m.replace('-','年')}月</option>`).join('');});}
-function updateNotice(){document.getElementById('notice').innerHTML=measure==='lead'?'<strong>新規リード起点：</strong>Segment Name の<strong>左端キャンペーンのみ</strong>に帰属。詳細テーブルの「詳細 →」でコンタクト一覧・HubSpotリンクを表示。':'<strong>アポ前接触起点：</strong>商談前キャンペーン列に含まれるキャンペーン起点で集計。詳細テーブルの「詳細 →」でコンタクト一覧・HubSpotリンクを表示。';}
-function showTab(name,el){document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('pnl-'+name).classList.add('on');el.classList.add('on');if(name==='monthly')renderMonthly();if(name==='heatmap')renderHeatmap();if(name==='owner')renderOwner();if(name==='lost')renderLost();if(name==='table')renderTable();}
-function setMeasure(m){measure=m;document.getElementById('btn-lead').classList.toggle('on',m==='lead');document.getElementById('btn-appo').classList.toggle('on',m==='appo');render();}
-function render(){updateNotice();renderKPI();renderCats();renderFunnel();const active=document.querySelector('.pnl.on');if(active?.id==='pnl-monthly')renderMonthly();if(active?.id==='pnl-heatmap')renderHeatmap();if(active?.id==='pnl-owner')renderOwner();if(active?.id==='pnl-lost')renderLost();if(active?.id==='pnl-table')renderTable();}
-initMF();render();
-})();
+function buildContactRows(page,start,prefix){
+  return page.map((c,idx)=>{
+    const gi=start+idx;
+    const hasWon=c.dl.some(d=>d.iw),hasAppo=c.dl.length>0;
+    const sb=hasWon?'<span class="badge badge-won">受注</span>':hasAppo?'<span class="badge badge-prog">アポあり</span>':'<span class="badge badge-none">リードのみ</span>';
+    const wa=c.dl.reduce((s,d)=>s+(d.iw?d.am:0),0);
+    const hsC=c.ci?'<a href="'+(COHORT_HS_C)+(c.ci)+'" target="_blank" class="hs-link">🔗 コンタクト</a>':'';
+    const dealsHtml=c.dl.map(d=>{
+      const cls=d.iw?'won':d.il?'lost':'';
+      const sb2=d.iw?'<span class="badge badge-won">受注 S</span>':d.il?'<span class="badge badge-lost">'+(d.st)+'</span>':'<span class="badge badge-prog">'+(d.st)+'</span>';
+      const hsD=d.rid?'<a href="'+(COHORT_HS_D)+(d.rid)+'" target="_blank" class="hs-link">🔗 取引</a>':'';
+      return'<div class="deal-card '+(cls)+'"><div class="deal-top">'+(sb2)+'<div>'+(hsD)+'</div></div>'+
+        '<div class="deal-fields">'+(d.am>0?('金額：<span>¥'+(d.am.toLocaleString())+'</span><br>'):'')+(d.cr?('担当者：<span>'+(d.cr)+'</span><br>'):'')+(d.cd?('商談作成：<span>'+(d.cd)+'</span><br>'):'')+(d.pc?('商談前キャンペーン：<span style="font-size:10px">'+(d.pc)+'</span>'):'')+'</div></div>';
+    }).join('');
+    return'<div class="contact-row" id="'+(prefix)+'-'+(gi)+'">'+
+      '<div class="cr-main" onclick="toggleCR(\''+(prefix)+'-'+(gi)+'\')">'+
+        '<div class="cr-company">'+(c.co||'（会社名なし）')+'</div>'+
+        '<div class="cr-meta">'+(sb)+(wa>0?('<span style="font-family:\'DM Mono\',monospace;color:var(--gn);font-size:11px">¥'+(wa.toLocaleString())+'</span>'):'')+'<span style="font-size:10px;color:var(--t3)">'+(c.lym)+'</span>'+(hsC)+'</div>'+
+        '<span class="cr-toggle">▶</span>'+
+      '</div>'+
+      '<div class="cr-detail"><div class="cr-detail-inner">'+
+        '<div style="font-size:11px;color:var(--t3);margin-bottom:8px">Segment：<span style="color:var(--t2)">'+((c.seg||[]).join(', '))+'</span></div>'+
+        (c.dl.length>0?('<div style="font-size:10px;color:var(--t3);margin-bottom:6px">商談 '+(c.dl.length)+'件</div><div class="deal-grid">'+(dealsHtml)+'</div>'):'<div style="font-size:11px;color:var(--t3)">商談なし</div>')+
+      '</div></div>'+
+    '</div>';
+  }).join('');
+}
+function toggleCR(id){document.getElementById(id)?.classList.toggle('expanded');}
+function buildPagination(id,total,page,onPage){
+  const tp=Math.ceil(total/COHORT_PS);if(tp<=1){document.getElementById(id).innerHTML='';return;}
+  const pages=[];for(let i=0;i<Math.min(tp,20);i++)pages.push('<button class="page-btn '+(i===page?'on':'')+'" onclick="('+(onPage)+')('+(i)+')">'+(i+1)+'</button>');
+  document.getElementById(id).innerHTML='<span>'+(page*COHORT_PS+1)+'-'+(Math.min((page+1)*COHORT_PS,total))+' / '+(total)+'件</span><div class="page-btns">'+(pages.join(''))+'</div>';
+}
+function mkChart(id,cfg){const el=document.getElementById(id);if(!el)return;if(cohortCharts[id])cohortCharts[id].destroy();Chart.defaults.color='#8890a4';Chart.defaults.font={family:"'Noto Sans JP',sans-serif",size:11};cohortCharts[id]=new Chart(el,cfg);}
+function showTab(name,el){
+  document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('pnl-'+name).classList.add('on');el.classList.add('on');
+  if(!currentResult)return;
+  if(name==='cohort')   renderCohort();
+  if(name==='trend')    renderTrend();
+  if(name==='owner')    renderOwner();
+  if(name==='lost')     renderLost();
+  if(name==='contacts') renderContactList();
+}
+function clearAll(){
+  document.getElementById('f-seg-base').value='';
+  currentResult=null;currentContacts=[];
+  document.getElementById('empty-state').style.display='block';
+  document.getElementById('result').style.display='none';
+}
+setView(1);initFilters();
 </script>
 </body>
 </html>
