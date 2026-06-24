@@ -235,6 +235,7 @@ function extractBase(seg){
   const s=seg
     .replace(/\u3010\u30ad\u30e3\u30f3\u30da\u30fc\u30f3\u3011/gi,'')
     .replace(/【キャンペーン】/g,'')
+    .replace(/【キャンペーン】/g,'')
     .trim();
   return s.split(/[\s\u3000\u00A0]+/)[0].replace(/_+$/,'');
 }
